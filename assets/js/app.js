@@ -1,62 +1,57 @@
-// Emoji picker for GitHub Pages — loads emoji metadata, converts unified -> char
+// Emoji Picker for idcrypt (GitHub Pages version)
 (function () {
-  const RAW = '../data/emoji.json'; // pakai mirror lokal agar cepat
+
+  // PENTING: Path untuk GitHub Pages
+  const RAW = '../data/emoji.json';
+
   const grid = document.getElementById('grid');
   const q = document.getElementById('q');
   const cat = document.getElementById('cat');
   const toast = document.getElementById('toast');
   const loading = document.getElementById('loading');
   const clearBtn = document.getElementById('clear');
+
   let emojis = [];
 
+  // Convert unified hex → emoji char
   function unifiedToChar(unified) {
-    // unified like '1F436' or '1F3FB-200D-2642-FE0F'
     try {
       return unified
         .split('-')
-        .map((u) => parseInt(u, 16))
-        .map((cp) => String.fromCodePoint(cp))
+        .map(u => parseInt(u, 16))
+        .map(cp => String.fromCodePoint(cp))
         .join('');
     } catch (e) {
       return '';
     }
   }
 
+  // Build simplified list
   function buildList(raw) {
-    return raw
-      .map((e) => {
-        const char = e.char || (e.unified ? unifiedToChar(e.unified) : '');
-        return {
-          char,
-          name: e.name || e.short_name || '',
-          category: (e.category || 'other').toLowerCase(),
-        };
-      })
-      .filter((x) => x.char);
+    return raw.map(e => {
+      const char = e.char || (e.codes ? unifiedToChar(e.codes) : '');
+      return {
+        char,
+        name: e.name || '',
+        category: (e.category || 'other').toLowerCase()
+      };
+    }).filter(x => x.char);
   }
 
+  // Get category options
   function uniqueCategories(list) {
-    const s = new Set(list.map((i) => i.category));
-    return Array.from(s).sort();
+    return [...new Set(list.map(i => i.category))].sort();
   }
 
+  // Show toast
   function showToast(text) {
     toast.textContent = text || 'Copied ✓';
     toast.style.display = 'block';
     clearTimeout(window.__to);
-    window.__to = setTimeout(() => (toast.style.display = 'none'), 1200);
+    window.__to = setTimeout(() => toast.style.display = 'none', 1200);
   }
 
-  function copyText(t) {
-    if (!t) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(t)
-        .then(() => showToast('Copied ✓'))
-        .catch(() => fallback(t));
-    } else fallback(t);
-  }
-
+  // Copy fallback
   function fallback(t) {
     try {
       const ta = document.createElement('textarea');
@@ -74,15 +69,32 @@
     }
   }
 
+  // Copy handler
+  function copyText(t) {
+    if (!t) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(t)
+        .then(() => showToast('Copied ✓'))
+        .catch(() => fallback(t));
+    } else {
+      fallback(t);
+    }
+  }
+
+  // Render emoji grid
   function render(list) {
     grid.innerHTML = '';
+
     if (!list.length) {
       grid.innerHTML = '<div class="loading">No emojis found</div>';
       return;
     }
 
     const frag = document.createDocumentFragment();
-    list.forEach((i) => {
+
+    list.forEach(i => {
       const card = document.createElement('div');
       card.className = 'card';
       card.setAttribute('role', 'listitem');
@@ -90,7 +102,6 @@
       const ch = document.createElement('div');
       ch.className = 'char';
       ch.textContent = i.char;
-      ch.setAttribute('aria-hidden', 'true');
 
       const btn = document.createElement('button');
       btn.className = 'btn';
@@ -99,7 +110,7 @@
       btn.addEventListener('click', () => {
         copyText(i.char);
         btn.textContent = 'Copied!';
-        setTimeout(() => (btn.textContent = 'Copy'), 700);
+        setTimeout(() => btn.textContent = 'Copy', 700);
       });
 
       const sm = document.createElement('div');
@@ -115,15 +126,16 @@
     grid.appendChild(frag);
   }
 
+  // Filter search + category
   function applyFilters() {
     const qv = (q.value || '').toLowerCase().trim();
-    const cv = cat.value || 'all';
+    const cv = (cat.value || 'all');
 
-    const out = emojis.filter((i) => {
+    const out = emojis.filter(i => {
       if (cv !== 'all' && i.category !== cv) return false;
       if (!qv) return true;
       return (
-        (i.name || '').toLowerCase().includes(qv) ||
+        i.name.toLowerCase().includes(qv) ||
         (i.char || '').includes(qv)
       );
     });
@@ -131,27 +143,38 @@
     render(out);
   }
 
+  // Init main
   async function init() {
     loading.style.display = 'block';
+
     try {
       const res = await fetch(RAW);
       if (!res.ok) throw new Error('Failed to fetch emoji.json');
+
       const raw = await res.json();
       emojis = buildList(raw);
 
+      // Build categories
       const cats = uniqueCategories(emojis);
       cat.innerHTML =
         '<option value="all">All</option>' +
-        cats.map((c) => `<option value="${c}">${c}</option>`).join('');
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
 
       applyFilters();
+
     } catch (e) {
       console.error(e);
-      grid.innerHTML = '<div class="loading">Failed to load emoji data</div>';
+      grid.innerHTML = `
+        <div class="loading" style="color:#d33">
+          Failed to load emoji data.<br>
+          Ensure <strong>data/emoji.json</strong> exists.
+        </div>`;
     }
+
     loading.style.display = 'none';
   }
 
+  // Events
   q.addEventListener('input', applyFilters);
   cat.addEventListener('change', applyFilters);
   clearBtn.addEventListener('click', () => {
@@ -161,4 +184,5 @@
   });
 
   init();
+
 })();
