@@ -1,188 +1,83 @@
-// Emoji Picker for idcrypt (GitHub Pages version)
-(function () {
+const q = document.getElementById('q');
+const cat = document.getElementById('cat');
+const grid = document.getElementById('grid');
+const loading = document.getElementById('loading');
 
-  // PENTING: Path untuk GitHub Pages
-  const RAW = '../data/emoji.json';
+let EMOJIS = [];
+let CATEGORIES = [];
 
-  const grid = document.getElementById('grid');
-  const q = document.getElementById('q');
-  const cat = document.getElementById('cat');
-  const toast = document.getElementById('toast');
-  const loading = document.getElementById('loading');
-  const clearBtn = document.getElementById('clear');
-
-  let emojis = [];
-
-  // Convert unified hex → emoji char
-  function unifiedToChar(unified) {
-    try {
-      return unified
-        .split('-')
-        .map(u => parseInt(u, 16))
-        .map(cp => String.fromCodePoint(cp))
-        .join('');
-    } catch (e) {
-      return '';
-    }
+async function init() {
+  try {
+    const res = await fetch('./data/emoji.json');
+    if (!res.ok) throw new Error('Failed to fetch emoji.json');
+    EMOJIS = await res.json();
+  } catch (err) {
+    loading.textContent = 'Failed to load emoji data.';
+    console.error(err);
+    return;
   }
 
-  // Build simplified list
-  function buildList(raw) {
-    return raw.map(e => {
-      const char = e.char || (e.codes ? unifiedToChar(e.codes) : '');
-      return {
-        char,
-        name: e.name || '',
-        category: (e.category || 'other').toLowerCase()
-      };
-    }).filter(x => x.char);
-  }
+  // Get unique categories
+  CATEGORIES = [...new Set(EMOJIS.map(e => e.category))];
 
-  // Get category options
-  function uniqueCategories(list) {
-    return [...new Set(list.map(i => i.category))].sort();
-  }
+  // Populate category dropdown
+  cat.innerHTML = `<option value="">All</option>` +
+    CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
 
-  // Show toast
-  function showToast(text) {
-    toast.textContent = text || 'Copied ✓';
-    toast.style.display = 'block';
-    clearTimeout(window.__to);
-    window.__to = setTimeout(() => toast.style.display = 'none', 1200);
-  }
+  // Render all emojis immediately
+  loading.style.display = 'none';
+  renderGrid(EMOJIS);
 
-  // Copy fallback
-  function fallback(t) {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = t;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      ta.remove();
-      showToast('Copied ✓');
-    } catch (e) {
-      console.error(e);
-      showToast('Copy failed');
-    }
-  }
+  // Bind search + category events
+  q.addEventListener('input', filterGrid);
+  cat.addEventListener('change', filterGrid);
+  document.getElementById('clear').addEventListener('click', resetFilters);
+}
 
-  // Copy handler
-  function copyText(t) {
-    if (!t) return;
+function renderGrid(list) {
+  grid.innerHTML = list.map(e => `
+    <button class="item" data-char="${e.char}" title="${e.name}">
+      <span class="emoji">${e.char}</span>
+      <span class="copy">Copy</span>
+    </button>
+  `).join('');
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(t)
-        .then(() => showToast('Copied ✓'))
-        .catch(() => fallback(t));
-    } else {
-      fallback(t);
-    }
-  }
+  // Copy handlers
+  document.querySelectorAll('.item').forEach(btn => {
+    btn.onclick = () => {
+      const char = btn.dataset.char;
+      navigator.clipboard.writeText(char);
+      showToast();
+    };
+  });
+}
 
-  // Render emoji grid
-  function render(list) {
-    grid.innerHTML = '';
+function filterGrid() {
+  const text = q.value.toLowerCase();
+  const category = cat.value;
 
-    if (!list.length) {
-      grid.innerHTML = '<div class="loading">No emojis found</div>';
-      return;
-    }
+  const filtered = EMOJIS.filter(e => {
+    const matchText =
+      e.name.toLowerCase().includes(text) ||
+      (e.keywords && e.keywords.join(' ').toLowerCase().includes(text));
 
-    const frag = document.createDocumentFragment();
-
-    list.forEach(i => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.setAttribute('role', 'listitem');
-
-      const ch = document.createElement('div');
-      ch.className = 'char';
-      ch.textContent = i.char;
-
-      const btn = document.createElement('button');
-      btn.className = 'btn';
-      btn.type = 'button';
-      btn.textContent = 'Copy';
-      btn.addEventListener('click', () => {
-        copyText(i.char);
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 700);
-      });
-
-      const sm = document.createElement('div');
-      sm.className = 'small';
-      sm.textContent = i.name;
-
-      card.appendChild(ch);
-      card.appendChild(btn);
-      card.appendChild(sm);
-      frag.appendChild(card);
-    });
-
-    grid.appendChild(frag);
-  }
-
-  // Filter search + category
-  function applyFilters() {
-    const qv = (q.value || '').toLowerCase().trim();
-    const cv = (cat.value || 'all');
-
-    const out = emojis.filter(i => {
-      if (cv !== 'all' && i.category !== cv) return false;
-      if (!qv) return true;
-      return (
-        i.name.toLowerCase().includes(qv) ||
-        (i.char || '').includes(qv)
-      );
-    });
-
-    render(out);
-  }
-
-  // Init main
-  async function init() {
-    loading.style.display = 'block';
-
-    try {
-      const res = await fetch(RAW);
-      if (!res.ok) throw new Error('Failed to fetch emoji.json');
-
-      const raw = await res.json();
-      emojis = buildList(raw);
-
-      // Build categories
-      const cats = uniqueCategories(emojis);
-      cat.innerHTML =
-        '<option value="all">All</option>' +
-        cats.map(c => `<option value="${c}">${c}</option>`).join('');
-
-      applyFilters();
-
-    } catch (e) {
-      console.error(e);
-      grid.innerHTML = `
-        <div class="loading" style="color:#d33">
-          Failed to load emoji data.<br>
-          Ensure <strong>data/emoji.json</strong> exists.
-        </div>`;
-    }
-
-    loading.style.display = 'none';
-  }
-
-  // Events
-  q.addEventListener('input', applyFilters);
-  cat.addEventListener('change', applyFilters);
-  clearBtn.addEventListener('click', () => {
-    q.value = '';
-    cat.value = 'all';
-    applyFilters();
+    const matchCat = !category || e.category === category;
+    return matchText && matchCat;
   });
 
-  init();
+  renderGrid(filtered);
+}
 
-})();
+function resetFilters() {
+  q.value = '';
+  cat.value = '';
+  renderGrid(EMOJIS);
+}
+
+function showToast() {
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1200);
+}
+
+init();
