@@ -4,10 +4,41 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>idcrypt — Emoji Picker</title>
+  <meta name="description" content="Lightweight, searchable emoji picker for idcrypt — copy emoji to clipboard. Embed via iframe in Blogger." />
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <div id="app"></div>
-  <script src="assets/js/app.js"></script>
+  <div id="app">
+    <div class="wrap">
+      <header>
+        <div class="logo">ID</div>
+        <div>
+          <h1>idcrypt Emoji Picker</h1>
+          <div class="lead">Search and copy emojis — optimized for embedding in Blogger via iframe.</div>
+        </div>
+      </header>
+
+      <div class="controls">
+        <input id="q" class="search" placeholder="Search emoji or name (e.g. rocket, fire)" aria-label="Search emojis" />
+        <select id="cat" class="cat" aria-label="Category"></select>
+        <button id="clear" class="clear">Reset</button>
+      </div>
+
+      <div class="visual"><strong>Tip:</strong> Click "Copy" to copy the emoji character. This page is static, fast, and safe to embed via iframe.</div>
+
+      <div id="loading" class="loading">Loading emojis…</div>
+      <div id="grid" class="grid" aria-live="polite" role="list"></div>
+
+      <div id="toast" class="toast" role="status" aria-live="polite">Copied ✓</div>
+
+      <footer>Deploy this folder to GitHub Pages and embed via &lt;iframe&gt; for Blogger. See README in repo for instructions.</footer>
+    </div>
+  </div>
+
+  <noscript>
+    <div style="padding:12px;background:#fff6;max-width:980px;margin:18px auto;border-radius:8px;text-align:center">JavaScript is required for the emoji picker. Please enable JavaScript.</div>
+  </noscript>
+
+  <script src="assets/js/app.js" defer></script>
 </body>
 </html>
