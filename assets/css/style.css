@@ -1,0 +1,63 @@
+:root {
+  --bg:#f4faff;
+  --card:#ffffff;
+  --border:#d0e4f7;
+  --text:#1a1a1a;
+  --radius:18px;
+  --transition:0.18s;
+}
+body {
+  margin:0;
+  padding:20px;
+  font-family:system-ui,Segoe UI,Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.header {
+  text-align:center;
+  margin-bottom:25px;
+}
+.search-box {
+  max-width:420px;
+  margin:0 auto 25px;
+}
+.search-box input {
+  width:100%;
+  padding:12px 16px;
+  font-size:16px;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  background:white;
+}
+#emoji-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(65px,1fr));
+  gap:14px;
+}
+.emoji-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+  text-align:center;
+  cursor:pointer;
+  transition:var(--transition);
+  font-size:34px;
+  line-height:1;
+}
+.emoji-card:hover {
+  transform:translateY(-3px);
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+}
+.emoji-label {
+  margin-top:6px;
+  font-size:13px;
+  color:#444;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.copied {
+  background:#e0fbe0!important;
+  border-color:#b5e7b5!important;
+}
